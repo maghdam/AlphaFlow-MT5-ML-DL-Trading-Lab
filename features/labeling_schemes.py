@@ -143,3 +143,33 @@ def create_labels_regime_detection(df, short_window=20, long_window=50):
     df_copy.dropna(subset=["ma_short", "ma_long"], inplace=True)
     
     return df_copy
+
+
+def create_labels_volatility(df: pd.DataFrame, returns_window: int = 1, vol_window: int = 20) -> pd.DataFrame:
+    """
+    Creates labels based on volatility and future returns.
+    
+    The function calculates the future returns and the rolling volatility, then
+    assigns labels based on the following conditions:
+    -  1: if future return > volatility
+    - -1: if future return < -volatility
+    -  0: otherwise
+
+    Args:
+        df (pd.DataFrame): DataFrame containing the 'close' column.
+        returns_window (int): Horizon for calculating future returns.
+        vol_window (int): Rolling window for calculating volatility.
+
+    Returns:
+        pd.DataFrame: A new DataFrame with a 'volatility_label' column in {-1, 0, +1}.
+    """
+    df_copy = df.copy()
+    df_copy = calculate_future_returns(df_copy, horizon=returns_window)
+    df_copy["volatility"] = df_copy["future_returns"].rolling(vol_window, min_periods=1).std()
+
+    df_copy["volatility_label"] = 0
+    df_copy.loc[df_copy["future_returns"] > df_copy["volatility"], "volatility_label"] = 1
+    df_copy.loc[df_copy["future_returns"] < -df_copy["volatility"], "volatility_label"] = -1
+
+    df_copy.dropna(subset=["volatility", "future_returns"], inplace=True)
+    return df_copy
