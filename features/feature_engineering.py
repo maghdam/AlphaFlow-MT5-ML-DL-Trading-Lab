@@ -129,11 +129,9 @@ def parkinson_estimator(window: pd.DataFrame) -> float:
 
 def moving_parkinson_estimator(df: pd.DataFrame, window_size: int = 30) -> pd.DataFrame:
     dfc = df.copy()
-    rolling_vol = pd.Series(dtype="float64", index=dfc.index)
-    for i in range(window_size, len(dfc)):
-        w = dfc.iloc[i - window_size : i]
-        rolling_vol.iloc[i] = parkinson_estimator(w)
-    dfc["rolling_volatility_parkinson"] = rolling_vol
+    sq_log_hl = np.log(dfc["high"] / dfc["low"]) ** 2
+    rolling_sum = sq_log_hl.rolling(window=window_size).sum().shift(1)
+    dfc["rolling_volatility_parkinson"] = np.sqrt(rolling_sum / (4 * math.log(2) * window_size))
     return dfc
 
 
@@ -148,11 +146,11 @@ def yang_zhang_estimator(window: pd.DataFrame) -> float:
 
 def moving_yang_zhang_estimator(df: pd.DataFrame, window_size: int = 30) -> pd.DataFrame:
     dfc = df.copy()
-    rolling_vol = pd.Series(dtype="float64", index=dfc.index)
-    for i in range(window_size, len(dfc)):
-        w = dfc.iloc[i - window_size : i]
-        rolling_vol.iloc[i] = yang_zhang_estimator(w)
-    dfc["rolling_volatility_yang_zhang"] = rolling_vol
+    term1 = np.log(dfc["high"] / dfc["low"]) ** 2
+    term2 = np.log(dfc["close"] / dfc["open"]) ** 2
+    term_sum = term1 + term2
+    rolling_mean = term_sum.rolling(window=window_size).mean().shift(1)
+    dfc["rolling_volatility_yang_zhang"] = np.sqrt(rolling_mean)
     return dfc
 
 
