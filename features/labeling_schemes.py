@@ -82,40 +82,6 @@ def create_labels_double_barrier(df, up=0.005, down=0.005, horizon=20):
 
 
 
-def create_labels_double_barrier(df, up=0.005, down=0.005, horizon=20):
-    """
-    Double-barrier labeling:
-      +1 if upper barrier is touched first,
-      -1 if lower barrier is touched first,
-       0 if neither is touched within horizon.
-    df must have a 'close' column.
-    Returns a new DataFrame with a 'barrier_label' column in {-1, 0, +1}.
-    """
-    df_copy = df.copy()
-    closes = df_copy["close"].values
-    labels = np.full(len(closes), np.nan)
-    
-    for i in range(len(closes)):
-        current_price = closes[i]
-        upper_barrier = current_price * (1 + up)
-        lower_barrier = current_price * (1 - down)
-        
-        end = min(i + horizon, len(closes))
-        for fwd_i in range(i+1, end):
-            if closes[fwd_i] >= upper_barrier:
-                labels[i] = 1
-                break
-            elif closes[fwd_i] <= lower_barrier:
-                labels[i] = -1
-                break
-        if np.isnan(labels[i]):
-            labels[i] = 0
-    
-    df_copy["barrier_label"] = labels
-    return df_copy
-
-
-
 def create_labels_regime_detection(df, short_window=20, long_window=50):
     """
     Simple regime detection:
