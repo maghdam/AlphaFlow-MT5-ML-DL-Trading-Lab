@@ -101,9 +101,13 @@ class TradingApp:
         Loads a pre-trained classification pipeline (e.g., 'best_rf_pipeline.pkl').
         This pipeline is expected to produce SHIFTED labels [0,1,2].
         """
-        self.pipeline = joblib.load(pipeline_path)
-        logging.info(f"Loaded pipeline from {pipeline_path}")
-        log_and_print(f"Loaded pipeline from {pipeline_path}")
+        import joblib
+        try:
+            self.pipeline = joblib.load(pipeline_path)
+            log_and_print(f"Pipeline loaded from {pipeline_path}")
+        except Exception as e:
+            log_and_print(f"Failed to load pipeline: {e}", is_error=True)
+            self.pipeline = None
 
     def ml_signal_generation(self, symbol, n_bars, timeframe):
         """
