@@ -82,6 +82,9 @@ class TradingApp:
         Fetch 'n' bars of historical data for the given symbol and timeframe.
         """
         rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, n)
+        if rates is None:
+            log_and_print(f"Could not retrieve data for {symbol}", is_error=True)
+            return None
         rates_frame = pd.DataFrame(rates)
         rates_frame['time'] = pd.to_datetime(rates_frame['time'], unit='s')
         rates_frame.set_index('time', inplace=True)
