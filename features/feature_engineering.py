@@ -204,8 +204,11 @@ def market_regime_dc(df: pd.DataFrame, threshold: float = 0.01) -> pd.DataFrame:
     dc_up, dc_down = calculate_dc(dfc, threshold=threshold)
     t_down, t_up = calculate_trend(dc_up, dc_down, dfc)
     dfc["market_regime"] = np.nan
-    dfc.loc[t_up, "market_regime"] = 1
-    dfc.loc[t_down, "market_regime"] = 0
+    # Map index locations to actual index labels since calculate_dc returns integer indices
+    t_up_labels = dfc.index[t_up] if len(t_up) > 0 else []
+    t_down_labels = dfc.index[t_down] if len(t_down) > 0 else []
+    dfc.loc[t_up_labels, "market_regime"] = 1
+    dfc.loc[t_down_labels, "market_regime"] = 0
     dfc["market_regime"] = dfc["market_regime"].ffill().bfill()
     return dfc
 
@@ -266,7 +269,7 @@ def displacement_detection(
     dfc["displacement"] = 0
     mask = dfc["candle_range"] > strenght * dfc["STD"]
     dfc.loc[mask, "displacement"] = 1
-    dfc["red_displacement"] = (dfc["displacement"] & dfc["displacement"].shift(1).fillna(0)).astype(int)
+    dfc["red_displacement"] = (dfc["displacement"].astype(int) & dfc["displacement"].shift(1).fillna(0).astype(int)).astype(int)
     return dfc
 
 
