@@ -9,6 +9,7 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 import ta
+from numba import njit
 
 from scipy.fftpack import fft  # simple global FFT (optional)
 from statsmodels.tsa.stattools import adfuller, kpss
@@ -303,18 +304,15 @@ def rolling_adf_with_flag(
 # =============================================================================
 # 7) DOUBLE-BARRIER LABEL
 # =============================================================================
-def set_double_barrier_label(
-    df: pd.DataFrame, up: float = 0.005, down: float = 0.005, horizon: int = 50
-) -> pd.DataFrame:
-    dfc = df.copy()
-    closes = dfc["close"].values
-    labels = np.full(len(closes), np.nan)
-
-    for i in range(len(closes)):
+@njit
+def _compute_double_barrier_labels(closes: np.ndarray, up: float, down: float, horizon: int) -> np.ndarray:
+    n = len(closes)
+    labels = np.full(n, np.nan)
+    for i in range(n):
         current = closes[i]
         upper = current * (1 + up)
         lower = current * (1 - down)
-        end = min(i + horizon, len(closes))
+        end = min(i + horizon, n)
         for j in range(i + 1, end):
             if closes[j] >= upper:
                 labels[i] = 1
@@ -322,6 +320,15 @@ def set_double_barrier_label(
             if closes[j] <= lower:
                 labels[i] = 0
                 break
+    return labels
+
+def set_double_barrier_label(
+    df: pd.DataFrame, up: float = 0.005, down: float = 0.005, horizon: int = 50
+) -> pd.DataFrame:
+    dfc = df.copy()
+    closes = dfc["close"].values
+
+    labels = _compute_double_barrier_labels(closes, up, down, horizon)
 
     dfc["barrier_label"] = labels
     dfc.dropna(subset=["barrier_label"], inplace=True)
