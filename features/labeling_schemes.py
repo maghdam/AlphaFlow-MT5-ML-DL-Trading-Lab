@@ -56,61 +56,37 @@ def create_labels_double_barrier(df, up=0.005, down=0.005, horizon=20):
     """
     df_copy = df.copy()
     closes = df_copy["close"].values
+    n = len(closes)
     
-    labels = np.full(len(closes), np.nan)
+    upper_barriers = closes * (1 + up)
+    lower_barriers = closes * (1 - down)
     
-    for i in range(len(closes)):
-        current_price = closes[i]
-        upper_barrier = current_price * (1 + up)
-        lower_barrier = current_price * (1 - down)
+    labels = np.zeros(n)
+    unlabeled = np.ones(n, dtype=bool)
+    
+    for h in range(1, min(horizon, n)):
+        idx = slice(0, n - h)
+        future_closes = closes[h:]
         
-        # Look ahead up to horizon bars (or until dataset ends)
-        end = min(i + horizon, len(closes))
-        for fwd_i in range(i+1, end):
-            if closes[fwd_i] >= upper_barrier:
-                labels[i] = 1
-                break
-            elif closes[fwd_i] <= lower_barrier:
-                labels[i] = -1
-                break
-        # if we exit loop without setting label => neither barrier hit => 0
-        if np.isnan(labels[i]):
-            labels[i] = 0
-    
-    df_copy["barrier_label"] = labels
-    return df_copy
+        # Check upper barrier
+        hit_upper = (future_closes >= upper_barriers[idx]) & unlabeled[idx]
+        if hit_upper.any():
+            hit_upper_full = np.zeros(n, dtype=bool)
+            hit_upper_full[idx] = hit_upper
+            labels[hit_upper_full] = 1
+            unlabeled[hit_upper_full] = False
 
+        # Check lower barrier
+        hit_lower = (future_closes <= lower_barriers[idx]) & unlabeled[idx]
+        if hit_lower.any():
+            hit_lower_full = np.zeros(n, dtype=bool)
+            hit_lower_full[idx] = hit_lower
+            labels[hit_lower_full] = -1
+            unlabeled[hit_lower_full] = False
 
+        if not unlabeled.any():
+            break
 
-def create_labels_double_barrier(df, up=0.005, down=0.005, horizon=20):
-    """
-    Double-barrier labeling:
-      +1 if upper barrier is touched first,
-      -1 if lower barrier is touched first,
-       0 if neither is touched within horizon.
-    df must have a 'close' column.
-    Returns a new DataFrame with a 'barrier_label' column in {-1, 0, +1}.
-    """
-    df_copy = df.copy()
-    closes = df_copy["close"].values
-    labels = np.full(len(closes), np.nan)
-    
-    for i in range(len(closes)):
-        current_price = closes[i]
-        upper_barrier = current_price * (1 + up)
-        lower_barrier = current_price * (1 - down)
-        
-        end = min(i + horizon, len(closes))
-        for fwd_i in range(i+1, end):
-            if closes[fwd_i] >= upper_barrier:
-                labels[i] = 1
-                break
-            elif closes[fwd_i] <= lower_barrier:
-                labels[i] = -1
-                break
-        if np.isnan(labels[i]):
-            labels[i] = 0
-    
     df_copy["barrier_label"] = labels
     return df_copy
 
