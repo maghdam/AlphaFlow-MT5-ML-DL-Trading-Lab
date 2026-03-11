@@ -60,12 +60,8 @@ def display_recent_signals(df: pd.DataFrame):
     # Optional: Show a quick mini-forecast chart per symbol
     st.write("---")
     st.subheader("Mini Signal Forecasts (per symbol)")
-    for symbol in sorted(df[COL_SYMBOL].unique()):
-        mini_df = (
-            df[df[COL_SYMBOL] == symbol]
-            .sort_values(COL_TIMESTAMP)
-            .tail(N_FORWARD)
-        )
+    for symbol, group in df.sort_values(COL_TIMESTAMP).groupby(COL_SYMBOL):
+        mini_df = group.tail(N_FORWARD)
         # Only show if there is more than one unique value
         if mini_df[COL_PREDICTION].nunique() > 1:
             st.write(f"**{symbol}**")
