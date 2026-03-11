@@ -127,8 +127,6 @@ dmypy.json
 *.xlsx
 *.pkl
 
-
-
-
 # Developer notes
 NOTES.md
+__pycache__
